@@ -31,8 +31,8 @@ those stops prints the next command to run.
 
 On a conflict, the script stops in the middle of the rebase. Resolve the files, run
 `git rebase --continue`, then run `sync.sh` again to push. Fork commits only add files
-under `packaging/rpm/` and `.agents/skills/fork-sync/`, so a conflict means upstream started
-using one of those paths.
+under `packaging/rpm/`, `.agents/skills/fork-sync/`, and `.vite-hooks/pre-push`, so a conflict
+means upstream started using one of those paths.
 
 Feature branches are left alone. Rebase them yourself afterwards with `git rebase <branch>`.
 

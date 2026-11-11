@@ -40,6 +40,12 @@ work=$root/release/rpm
 rm -rf "$work"
 mkdir -p "$work"
 
+# Electron builds outgrow a tmpfs /tmp. Keep TMPDIR outside the repo: the bundle self-check
+# fails when a node_modules is visible from it.
+export TMPDIR=${XDG_CACHE_HOME:-$HOME/.cache}/t3code-rpm-tmp
+rm -rf "$TMPDIR"
+mkdir -p "$TMPDIR"
+
 # No update feed gets baked in, so the app's self-updater stays off and dnf owns upgrades.
 unset GITHUB_REPOSITORY T3CODE_DESKTOP_UPDATE_REPOSITORY T3CODE_DESKTOP_VERSION
 vp i
@@ -78,7 +84,7 @@ metadata_expire=0
 skip_if_unavailable=True
 EOF
 
-rm -rf "$work"
+rm -rf "$work" "$TMPDIR"
 echo "rpm-build: published $nvr to $repo_dir"
 if [ -f /etc/yum.repos.d/t3code-local.repo ]; then
   echo "rpm-build: install or upgrade with: sudo dnf upgrade --refresh t3code   (first time: sudo dnf install t3code)"
