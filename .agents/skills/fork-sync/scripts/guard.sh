@@ -27,17 +27,20 @@ git config remote.pushDefault origin
 fork_slug=$(sed -E 's#^(git@github\.com:|ssh://git@github\.com/|https://github\.com/)##; s#\.git$##' <<<"$origin_url")
 gh repo set-default "$fork_slug" >/dev/null
 
-# Catches `git push <upstream-url> ...`, which bypasses the disabled push URL above.
-hook=$(git rev-parse --git-path hooks)/pre-push
-if [ -e "$hook" ] && ! grep -q "$HOOK_MARKER" "$hook"; then
-  die "$hook exists and is not ours; merge the upstream check into it by hand"
-fi
-mkdir -p "$(dirname "$hook")"
-cat >"$hook" <<EOF
-#!/bin/sh
-# $HOOK_MARKER (installed by .agents/skills/fork-sync/scripts/guard.sh)
-case "\$2" in
-  *$UPSTREAM_SLUG*) echo "pre-push: refusing to push to upstream (\$2). Push to origin, your fork." >&2; exit 1 ;;
+# .vite-hooks/pre-push must run on every push. `vp i` points core.hooksPath at vp's dispatcher,
+# which runs it; before that, git reads .git/hooks.
+[ -x .vite-hooks/pre-push ] || die ".vite-hooks/pre-push is missing or not executable"
+hooks_path=$(git config --get core.hooksPath || true)
+case "$hooks_path" in
+  .vite-hooks/_) ;;
+  "")
+    hook=$(git rev-parse --git-path hooks)/pre-push
+    if [ -e "$hook" ] && ! grep -q "$HOOK_MARKER" "$hook"; then
+      die "$hook exists and is not ours; make it also run .vite-hooks/pre-push"
+    fi
+    mkdir -p "$(dirname "$hook")"
+    printf '#!/bin/sh\n# %s\nexec "$(git rev-parse --show-toplevel)/.vite-hooks/pre-push" "$@"\n' "$HOOK_MARKER" >"$hook"
+    chmod +x "$hook"
+    ;;
+  *) die "core.hooksPath is '$hooks_path', so .vite-hooks/pre-push never runs; wire it in by hand" ;;
 esac
-EOF
-chmod +x "$hook"

@@ -1,0 +1,5 @@
+#!/bin/sh
+# Fork guard: catches `git push <upstream-url>`, which bypasses upstream's disabled push URL.
+case "$2" in
+  *pingdotgg/t3code*) echo "pre-push: refusing to push to upstream ($2). Push to origin, your fork." >&2; exit 1 ;;
+esac
