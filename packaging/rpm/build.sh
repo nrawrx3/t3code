@@ -46,6 +46,12 @@ export TMPDIR=${XDG_CACHE_HOME:-$HOME/.cache}/t3code-rpm-tmp
 rm -rf "$TMPDIR"
 mkdir -p "$TMPDIR"
 
+# Upstream caps bundled binaries at its Ubuntu CI glibc. This RPM only runs here, and native
+# modules rebuilt on this host need its glibc; rpmbuild still records the real requirement.
+glibc_check=scripts/linux-glibc.ts
+trap 'git checkout -- "$glibc_check"' EXIT
+sed -i -E "s/^(const GLIBC_BUILD_CEILING = )\"[0-9.]+\";/\1\"$(getconf GNU_LIBC_VERSION | cut -d' ' -f2)\";/" "$glibc_check"
+
 # No update feed gets baked in, so the app's self-updater stays off and dnf owns upgrades.
 unset GITHUB_REPOSITORY T3CODE_DESKTOP_UPDATE_REPOSITORY T3CODE_DESKTOP_VERSION
 vp i
